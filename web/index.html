@@ -33,6 +33,9 @@
             color: #2196F3;
             margin-top: 20px;
         }
+        h3 {
+            color: #3f51b5;
+        }
         p {
             margin-bottom: 10px;
         }
@@ -47,6 +50,32 @@
             padding: 15px;
             border-radius: 5px;
             margin-top: 20px;
+        }
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature {
+            flex: 1;
+            min-width: 250px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3f51b5;
+        }
+        .button {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .button:hover {
+            background: #43a047;
         }
         .code-block {
             background: #f1f1f1;
@@ -76,7 +105,29 @@
             <p><strong>部署時間：</strong> <span id="deploy-time">Loading...</span></p>
         </div>
         
-        <h2>下一步</h2>
+        <h2>可用功能</h2>
+        <div class="features">
+            <div class="feature">
+                <h3>管理系統</h3>
+                <p>您可以訪問簡易的內容管理系統：</p>
+                <p><a href="admin.php" class="button">訪問管理系統</a></p>
+                <p>測試帳號：admin / 密碼：demo</p>
+            </div>
+            
+            <div class="feature">
+                <h3>資料庫測試</h3>
+                <p>您可以檢查資料庫連接和設置情況：</p>
+                <p><a href="db-test.php" class="button">資料庫測試頁面</a></p>
+            </div>
+            
+            <div class="feature">
+                <h3>資料庫管理</h3>
+                <p>使用 phpMyAdmin 管理您的資料庫：</p>
+                <p><a href="/phpmyadmin/" class="button">phpMyAdmin</a></p>
+                <p>帳號：root / 密碼：rootpassword</p>
+            </div>
+        </div>
+        
         <p>您可以開始將您的網站內容放在 <code>/var/www/html</code> 目錄中來替換這個頁面。</p>
         
         <div class="steps">

@@ -41,6 +41,20 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# 詢問是否安裝資料庫
+echo ""
+echo "是否要安裝 MariaDB 資料庫和 phpMyAdmin？(y/n)"
+read -r install_db
+
+if [ "$install_db" = "y" ] || [ "$install_db" = "Y" ]; then
+    echo "安裝 MariaDB 資料庫和 phpMyAdmin..."
+    bash ./scripts/install_database.sh
+    if [ $? -ne 0 ]; then
+        echo "資料庫安裝失敗，請查看錯誤信息"
+        exit 1
+    fi
+fi
+
 # 安裝 VirtualBox Guest Additions（選擇性）
 echo ""
 echo "是否要安裝 VirtualBox Guest Additions 以啟用複製貼上功能？(y/n)"

@@ -1,14 +1,17 @@
-# 版本: V1.0
+# 版本: V1.1
 
-# Ubuntu Apache 自動化部署項目
+# Ubuntu Apache 自動化部署項目 (LAMP 環境)
 
-這個項目提供了在 Ubuntu 虛擬機中自動部署 Apache 網頁伺服器的完整解決方案，確保伺服器配置正確並可從宿主機訪問。
+這個項目提供了在 Ubuntu 虛擬機中自動部署 LAMP (Linux, Apache, MySQL/MariaDB, PHP) 環境的完整解決方案，確保伺服器配置正確並可從宿主機訪問。
 
 ## 項目概述
 
-本項目旨在通過自動化腳本在新建的 Ubuntu 虛擬機內部署並配置 Apache 伺服器，實現以下目標：
+本項目旨在通過自動化腳本在新建的 Ubuntu 虛擬機內部署並配置 LAMP 環境，實現以下目標：
 
 - 基礎 Apache 伺服器的安裝與配置
+- MariaDB 資料庫系統的安裝和設置
+- PHP 環境配置與整合
+- phpMyAdmin 資料庫管理界面
 - 安全設置與優化
 - 網絡配置，確保從實體機可訪問虛擬機中的網頁
 - 完整的自動化部署流程，最小化人工干預
@@ -25,6 +28,7 @@
 │   ├── configure_apache.sh   # Apache 配置腳本
 │   ├── setup_firewall.sh     # 防火牆設置腳本
 │   ├── network_config.sh     # 網絡配置腳本
+│   ├── install_database.sh   # 資料庫安裝腳本
 │   └── fix_apache.sh         # Apache 修復腳本
 ├── configs/                  # 配置文件目錄
 │   ├── apache/               # Apache 配置文件
@@ -55,7 +59,7 @@ sudo apt install git -y
 2. 克隆此倉庫：
 
 ```bash
-git clone https://github.com/jcode0x378/ubuntu-apache-setup.git
+git clone https://github.com/你的用戶名/ubuntu-apache-setup.git
 ```
 
 3. 進入項目目錄並設置執行權限：
@@ -73,7 +77,9 @@ chmod +x scripts/*.sh
 sudo ./setup.sh
 ```
 
-5. 按照腳本提示完成配置
+5. 按照腳本提示完成配置：
+   - 選擇是否安裝 MariaDB 資料庫和 phpMyAdmin
+   - 選擇是否安裝 VirtualBox Guest Additions 以啟用複製貼上功能
 
 ### 驗證部署
 
@@ -85,11 +91,82 @@ sudo ./setup.sh
 sudo systemctl status apache2
 ```
 
-2. 在實體機上通過瀏覽器訪問虛擬機 IP 地址：
+2. 檢查資料庫狀態（如果已安裝）：
+
+```bash
+sudo systemctl status mariadb
+```
+
+3. 在實體機上通過瀏覽器訪問：
 
 ```
+# 訪問 Apache 網站
 http://[虛擬機IP地址]
+
+# 訪問資料庫測試頁面
+http://[虛擬機IP地址]/db-test.php
+
+# 訪問 phpMyAdmin
+http://[虛擬機IP地址]/phpmyadmin
 ```
+
+## 資料庫功能
+
+本項目提供完整的資料庫環境，包括：
+
+### 已安裝組件
+
+- MariaDB 資料庫伺服器
+- PHP 和必要的 PHP 模組
+- phpMyAdmin 資料庫管理界面
+- 範例資料庫和示範資料表
+
+### 預設帳號
+
+- **資料庫名稱**：webappdb
+- **應用程式用戶**：webuser
+- **應用程式密碼**：userpassword
+- **root 用戶密碼**：rootpassword
+
+> ⚠️ 請注意：在生產環境中，請務必更改這些預設密碼！
+
+### 使用資料庫
+
+已經設置好的資料庫連接檔案位於 `/var/www/html/db-config.php`，您可以在任何 PHP 檔案中引入它來使用資料庫連接：
+
+```php
+// 引入資料庫連接檔案
+require_once 'db-config.php';
+
+// 使用 $conn 進行查詢
+$sql = "SELECT * FROM users";
+$result = $conn->query($sql);
+
+// 處理查詢結果
+if ($result->num_rows > 0) {
+    while($row = $result->fetch_assoc()) {
+        echo "User: " . $row["username"] . "<br>";
+    }
+}
+
+// 關閉連接
+$conn->close();
+```
+
+### 資料庫測試頁面
+
+安裝完成後，可通過以下 URL 訪問資料庫測試頁面：
+
+```
+http://[虛擬機IP地址]/db-test.php
+```
+
+該頁面提供以下功能：
+- 確認資料庫連接是否正常
+- 顯示資料庫版本信息
+- 顯示現有資料表列表
+- 提供 phpMyAdmin 連結
+- 提供基本的資料庫使用示例代碼
 
 ## 持久化運行 Apache 服務
 
