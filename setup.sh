@@ -113,4 +113,16 @@ else
     echo "嘗試修復 Apache："
     systemctl restart apache2
     echo "請檢查 Apache 錯誤日誌：sudo tail -f /var/log/apache2/error.log"
-fi 
+fi
+
+# 顯示持久化運行的資訊
+echo ""
+echo "==================================================="
+echo "Apache 伺服器已設置為開機自動啟動"
+echo "==================================================="
+echo "重要提示：Apache 伺服器將在系統啟動時自動運行，"
+echo "無需每次重新啟動虛擬機後手動啟動。"
+echo ""
+echo "如果 Apache 未能自動啟動，可以運行以下命令修復："
+echo "sudo ./scripts/fix_apache.sh"
+echo "===================================================" 

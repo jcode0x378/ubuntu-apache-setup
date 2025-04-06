@@ -158,6 +158,18 @@ if ! systemctl is-active apache2 >/dev/null; then
     fi
 fi
 
+# 確保開機自動啟動
+echo "設置 Apache 開機自動啟動..."
+systemctl enable apache2
+
+# 檢查自動啟動是否成功設置
+if systemctl is-enabled apache2 >/dev/null; then
+    echo "Apache2 已設置為開機自動啟動"
+else
+    echo "警告：無法通過 systemctl 設置開機自動啟動，嘗試其他方法..."
+    update-rc.d apache2 defaults
+fi
+
 # 檢查配置是否正確
 apache2ctl configtest
 

@@ -128,6 +128,92 @@ else
     tail -n 20 /var/log/apache2/error.log
 fi
 
+# 確保開機自動啟動
+echo "確保 Apache 開機自動啟動..."
+systemctl enable apache2
+
+# 檢查自動啟動是否成功設置
+if systemctl is-enabled apache2 >/dev/null; then
+    echo "Apache2 已設置為開機自動啟動"
+else
+    echo "警告：無法通過 systemctl 設置開機自動啟動，嘗試其他方法..."
+    update-rc.d apache2 defaults
+fi
+
+# 創建系統啟動服務檢查腳本
+echo "創建/更新系統啟動服務檢查腳本..."
+cat > /etc/init.d/check-apache << 'EOF'
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          check-apache
+# Required-Start:    $remote_fs $syslog $network
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: 確保 Apache 服務運行
+# Description:       在系統啟動時檢查 Apache 服務並確保其運行
+### END INIT INFO
+
+case "$1" in
+  start)
+    echo "檢查 Apache 服務..."
+    if ! systemctl is-active apache2 > /dev/null; then
+      echo "啟動 Apache 服務..."
+      systemctl start apache2
+    fi
+    ;;
+  stop)
+    echo "check-apache 服務不需要停止"
+    ;;
+  restart)
+    echo "重新啟動 Apache 服務..."
+    systemctl restart apache2
+    ;;
+  status)
+    systemctl status apache2
+    ;;
+  *)
+    echo "用法: $0 {start|stop|restart|status}"
+    exit 1
+    ;;
+esac
+
+exit 0
+EOF
+
+# 設置執行權限
+chmod +x /etc/init.d/check-apache
+
+# 將腳本添加到啟動序列
+update-rc.d check-apache defaults
+
+# 創建系統級別的自啟動服務 (使用 systemd)
+echo "創建 systemd 服務以確保 Apache 自動啟動..."
+cat > /etc/systemd/system/apache-autostart.service << 'EOF'
+[Unit]
+Description=確保 Apache 在系統啟動時運行
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'if ! systemctl is-active apache2 > /dev/null; then systemctl start apache2; fi'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 重新加載 systemd 配置
+systemctl daemon-reload
+
+# 啟用服務
+systemctl enable apache-autostart.service
+
+# 設置開機啟動的另一個方法 (使用 crontab)
+echo "設置 crontab 開機啟動項..."
+(crontab -l 2>/dev/null; echo "@reboot systemctl start apache2") | sort | uniq | crontab -
+
 # 檢查防火牆
 echo "檢查防火牆設置..."
 if command -v ufw > /dev/null; then

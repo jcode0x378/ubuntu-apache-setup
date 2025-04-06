@@ -13,6 +13,7 @@
 - 網絡配置，確保從實體機可訪問虛擬機中的網頁
 - 完整的自動化部署流程，最小化人工干預
 - 實現虛擬機與宿主機之間的複製貼上功能
+- **確保 Apache 服務在虛擬機重啟後自動運行**
 
 ## 項目結構
 
@@ -57,15 +58,22 @@ sudo apt install git -y
 git clone https://github.com/jcode0x378/ubuntu-apache-setup.git
 ```
 
-3. 進入項目目錄並啟動安裝腳本：
+3. 進入項目目錄並設置執行權限：
 
 ```bash
 cd ubuntu-apache-setup
-chmod +x setup.sh scripts/*.sh
+# 設置所有腳本的執行權限
+chmod +x setup.sh
+chmod +x scripts/*.sh
+```
+
+4. 啟動安裝腳本：
+
+```bash
 sudo ./setup.sh
 ```
 
-4. 按照腳本提示完成配置
+5. 按照腳本提示完成配置
 
 ### 驗證部署
 
@@ -82,6 +90,27 @@ sudo systemctl status apache2
 ```
 http://[虛擬機IP地址]
 ```
+
+## 持久化運行 Apache 服務
+
+本專案特別設置了多重機制確保 Apache 服務在虛擬機重啟後自動運行：
+
+1. 使用 `systemctl enable` 命令啟用 Apache 服務的自動啟動
+2. 創建自定義啟動腳本 `/etc/init.d/check-apache`，確保在系統啟動時檢查並啟動 Apache
+3. 設置 systemd 服務 `apache-autostart.service`，在系統啟動後監控 Apache 服務
+4. 使用 crontab 設置系統啟動項，添加額外保障
+
+這些多重機制確保了 Apache 服務在任何情況下都會在系統啟動時自動運行，不需要手動干預。
+
+### 如果 Apache 未自動啟動
+
+如果出現罕見情況 Apache 未自動啟動，可以執行修復腳本：
+
+```bash
+sudo ./scripts/fix_apache.sh
+```
+
+這將重新設置所有自動啟動機制並啟動 Apache 服務。
 
 ## 啟用複製貼上功能
 
