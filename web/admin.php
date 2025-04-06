@@ -5,6 +5,28 @@ session_start();
 // 包含資料庫配置
 require_once 'db-config.php';
 
+// 處理登出
+if (isset($_GET['logout'])) {
+    // 清除所有會話變量
+    $_SESSION = array();
+    
+    // 如果要徹底銷毀會話，還要刪除會話 cookie
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    
+    // 最後銷毀會話
+    session_destroy();
+    
+    // 重定向到登入頁面
+    header("Location: admin.php");
+    exit;
+}
+
 // 處理登入表單提交
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     $username = $_POST['username'];
@@ -96,7 +118,7 @@ $sql = "SELECT p.id, p.title, p.content, p.created_at, u.username
         ORDER BY p.created_at DESC";
 $result = $conn->query($sql);
 
-if ($result->num_rows > 0) {
+if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         $posts[] = $row;
     }
@@ -218,6 +240,19 @@ if ($result->num_rows > 0) {
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
         }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #777;
+        }
+        .links {
+            margin-top: 20px;
+        }
+        .links a {
+            margin: 0 10px;
+        }
     </style>
 </head>
 <body>
@@ -280,6 +315,13 @@ if ($result->num_rows > 0) {
                 <?php endforeach; ?>
             <?php endif; ?>
             
+            <div class="links">
+                <a href="index.html">返回首頁</a> | 
+                <a href="phpinfo.php">PHP 資訊</a> | 
+                <a href="db-test.php">資料庫測試</a> | 
+                <a href="/phpmyadmin/" target="_blank">phpMyAdmin</a>
+            </div>
+            
         <?php else: ?>
             <div class="login-container">
                 <h2>管理員登入</h2>
@@ -305,12 +347,17 @@ if ($result->num_rows > 0) {
                     密碼: demo<br>
                 </p>
                 
-                <p>
-                    <a href="index.php">返回首頁</a> | 
+                <div class="links">
+                    <a href="index.html">返回首頁</a> | 
                     <a href="db-test.php">資料庫測試頁面</a>
-                </p>
+                </div>
             </div>
         <?php endif; ?>
+        
+        <div class="footer">
+            &copy; <?php echo date("Y"); ?> LAMP 自動化部署示範 | 
+            伺服器 IP: <?php echo $_SERVER['SERVER_ADDR']; ?>
+        </div>
     </div>
 </body>
 </html> 

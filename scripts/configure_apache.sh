@@ -32,87 +32,21 @@ if [ ! -f "$(pwd)/configs/apache/sites-available/000-default.conf" ]; then
     sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html|g' "$(pwd)/configs/apache/sites-available/000-default.conf"
 fi
 
-# 複製網站文件
-echo "複製網站文件..."
-if [ ! -f "$(pwd)/web/index.html" ]; then
-    echo "創建默認首頁..."
-    cat > "$(pwd)/web/index.html" << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Ubuntu Apache 自動化部署成功</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background: #f4f4f4;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #fff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #4CAF50;
-            text-align: center;
-        }
-        p {
-            margin-bottom: 10px;
-        }
-        .success-icon {
-            text-align: center;
-            font-size: 72px;
-            color: #4CAF50;
-            margin-bottom: 20px;
-        }
-        .server-info {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="success-icon">✓</div>
-        <h1>Apache 伺服器部署成功！</h1>
-        <p>恭喜！您已成功配置並啟動 Apache 網頁伺服器。這個頁面確認您的服務器正在正確運行。</p>
-        
-        <div class="server-info">
-            <h2>伺服器資訊</h2>
-            <p><strong>伺服器地址：</strong> <span id="server-ip">Loading...</span></p>
-            <p><strong>作業系統：</strong> Ubuntu</p>
-            <p><strong>Web 伺服器：</strong> Apache</p>
-            <p><strong>部署時間：</strong> <span id="deploy-time">Loading...</span></p>
-        </div>
-        
-        <p>您可以開始將您的網站內容放在 <code>/var/www/html</code> 目錄中來替換這個頁面。</p>
-    </div>
+# 複製網站文件到 Apache 目錄
+echo "複製網站文件到 Apache 目錄..."
 
-    <script>
-        // 獲取當前伺服器 IP 地址
-        document.getElementById('server-ip').innerText = window.location.hostname;
-        
-        // 設置部署時間
-        document.getElementById('deploy-time').innerText = new Date().toLocaleString();
-    </script>
-</body>
-</html>
-EOF
+# 確保 admin.php 和其他網頁文件已被複製
+if [ -f "$(pwd)/web/admin.php" ]; then
+    echo "複製 admin.php 到 Apache 目錄..."
+    cp "$(pwd)/web/admin.php" /var/www/html/
 fi
 
-# 複製網站文件到 Apache 目錄
+if [ -f "$(pwd)/web/index.html" ]; then
+    echo "複製 index.html 到 Apache 目錄..."
+    cp "$(pwd)/web/index.html" /var/www/html/
+fi
+
+# 複製所有網站文件
 cp -r "$(pwd)/web/"* /var/www/html/
 
 # 設置適當的權限

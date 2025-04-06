@@ -14,6 +14,14 @@ MYSQL_APP_DB="webappdb"
 echo "更新系統套件列表..."
 apt update
 
+# 安裝必要的工具
+echo "安裝基本工具..."
+apt install -y curl wget nano
+
+# 安裝 PHP 和相關模組
+echo "安裝 PHP 和相關模組..."
+apt install -y php php-mysql php-cli php-common php-mbstring php-zip php-gd php-xml php-curl
+
 # 安裝 MySQL/MariaDB
 echo "安裝 MariaDB 資料庫服務器..."
 # 預先設置 mariadb-server 的安裝選項，避免交互式提示
@@ -37,12 +45,19 @@ systemctl enable mariadb
 
 # 檢查服務是否正在運行
 if ! systemctl is-active mariadb >/dev/null; then
-    echo "MariaDB 服務啟動失敗"
-    exit 1
+    echo "MariaDB 服務啟動失敗，嘗試再次啟動..."
+    systemctl restart mariadb
+    sleep 5
+    
+    if ! systemctl is-active mariadb >/dev/null; then
+        echo "MariaDB 服務無法啟動，請手動檢查問題"
+        exit 1
+    fi
 fi
 
-# 提高 MariaDB 安全性的腳本，自動化運行無需交互
-echo "提高 MariaDB 安全性..."
+# 安全配置 MariaDB
+echo "設定 MariaDB 安全配置..."
+# 使用預設值進行安全配置 (模擬 mysql_secure_installation)
 mysql -u root -p"$MYSQL_ROOT_PASSWORD" <<EOF
 -- 刪除匿名用戶
 DELETE FROM mysql.user WHERE User='';
@@ -68,11 +83,7 @@ GRANT ALL PRIVILEGES ON $MYSQL_APP_DB.* TO '$MYSQL_APP_USER'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 
-# 安裝 PHP 和相關模組
-echo "安裝 PHP 和相關模組..."
-apt install -y php php-mysql php-cli php-common php-mbstring php-zip php-gd php-xml php-curl
-
-# 安裝 phpMyAdmin
+# 安裝 phpMyAdmin (使用非交互方式)
 echo "安裝 phpMyAdmin..."
 # 預設 phpMyAdmin 配置
 debconf-set-selections <<< "phpmyadmin phpmyadmin/dbconfig-install boolean true"
@@ -84,21 +95,63 @@ debconf-set-selections <<< "phpmyadmin phpmyadmin/reconfigure-webserver multisel
 # 安裝 phpMyAdmin
 apt install -y phpmyadmin
 
+# 確保 phpMyAdmin 配置正確
+echo "確保 phpMyAdmin 配置正確..."
+if [ ! -f /etc/apache2/conf-enabled/phpmyadmin.conf ]; then
+    echo "創建 phpMyAdmin Apache 配置連結..."
+    ln -sf /etc/phpmyadmin/apache.conf /etc/apache2/conf-enabled/phpmyadmin.conf
+fi
+
 # 檢查 phpMyAdmin 安裝是否成功
 if [ -d /usr/share/phpmyadmin ]; then
     echo "phpMyAdmin 安裝成功"
 else
-    echo "phpMyAdmin 安裝失敗"
-    exit 1
+    echo "phpMyAdmin 安裝失敗，嘗試手動安裝..."
+    
+    # 嘗試手動安裝 phpMyAdmin
+    PHPMYADMIN_VERSION="5.2.1"
+    PHPMYADMIN_DIR="/usr/share/phpmyadmin"
+    
+    # 下載 phpMyAdmin
+    wget -O /tmp/phpmyadmin.tar.gz https://files.phpmyadmin.net/phpMyAdmin/${PHPMYADMIN_VERSION}/phpMyAdmin-${PHPMYADMIN_VERSION}-all-languages.tar.gz
+    
+    # 解壓到目標目錄
+    mkdir -p $PHPMYADMIN_DIR
+    tar xzf /tmp/phpmyadmin.tar.gz -C /tmp
+    cp -r /tmp/phpMyAdmin-${PHPMYADMIN_VERSION}-all-languages/* $PHPMYADMIN_DIR/
+    
+    # 創建配置檔
+    cp $PHPMYADMIN_DIR/config.sample.inc.php $PHPMYADMIN_DIR/config.inc.php
+    
+    # 生成隨機密鑰
+    BLOWFISH_SECRET=$(tr -dc 'a-zA-Z0-9~!@#$%^&*_()+}{?></";.,[]=-' < /dev/urandom | fold -w 32 | head -n 1)
+    sed -i "s/\$cfg\['blowfish_secret'\] = ''/\$cfg\['blowfish_secret'\] = '$BLOWFISH_SECRET'/g" $PHPMYADMIN_DIR/config.inc.php
+    
+    # 設置正確的權限
+    chown -R www-data:www-data $PHPMYADMIN_DIR
+    
+    # 創建 Apache 配置
+    echo "Alias /phpmyadmin $PHPMYADMIN_DIR" > /etc/apache2/conf-available/phpmyadmin.conf
+    echo "<Directory $PHPMYADMIN_DIR>" >> /etc/apache2/conf-available/phpmyadmin.conf
+    echo "    Options FollowSymLinks" >> /etc/apache2/conf-available/phpmyadmin.conf
+    echo "    DirectoryIndex index.php" >> /etc/apache2/conf-available/phpmyadmin.conf
+    echo "    AllowOverride All" >> /etc/apache2/conf-available/phpmyadmin.conf
+    echo "    Require all granted" >> /etc/apache2/conf-available/phpmyadmin.conf
+    echo "</Directory>" >> /etc/apache2/conf-available/phpmyadmin.conf
+    
+    # 啟用配置
+    a2enconf phpmyadmin
 fi
 
 # 優化 PHP 配置
 echo "優化 PHP 配置..."
-PHP_INI="/etc/php/*/apache2/php.ini"
-sed -i 's/^upload_max_filesize.*/upload_max_filesize = 20M/' $PHP_INI
-sed -i 's/^post_max_size.*/post_max_size = 21M/' $PHP_INI
-sed -i 's/^memory_limit.*/memory_limit = 256M/' $PHP_INI
-sed -i 's/^max_execution_time.*/max_execution_time = 300/' $PHP_INI
+for phpver in /etc/php/*/apache2/php.ini; do
+    echo "更新 PHP 配置檔: $phpver"
+    sed -i 's/^upload_max_filesize.*/upload_max_filesize = 20M/' $phpver
+    sed -i 's/^post_max_size.*/post_max_size = 21M/' $phpver
+    sed -i 's/^memory_limit.*/memory_limit = 256M/' $phpver
+    sed -i 's/^max_execution_time.*/max_execution_time = 300/' $phpver
+done
 
 # 重啟 Apache 以套用 PHP 設定
 echo "重啟 Apache 以套用 PHP 設定..."
@@ -141,9 +194,19 @@ EOF
 chown www-data:www-data /var/www/html/db-config.php
 chmod 640 /var/www/html/db-config.php
 
+# 創建一個簡單的 PHP 測試頁面
+echo "創建 PHP 資訊頁面..."
+cat > /var/www/html/phpinfo.php << 'EOF'
+<?php
+phpinfo();
+?>
+EOF
+chown www-data:www-data /var/www/html/phpinfo.php
+chmod 644 /var/www/html/phpinfo.php
+
 # 創建一個簡單的測試頁面
 echo "創建資料庫測試頁面..."
-cat > /var/www/html/db-test.php << EOF
+cat > /var/www/html/db-test.php << 'EOF'
 <!DOCTYPE html>
 <html>
 <head>
@@ -239,7 +302,7 @@ cat > /var/www/html/db-test.php << EOF
         echo '<strong>資料庫管理：</strong><br>';
         echo '您可以使用 <a href="/phpmyadmin/" target="_blank">phpMyAdmin</a> 來管理您的資料庫。';
         echo '<br>用戶名: root';
-        echo '<br>密碼: (安裝時設置的密碼)';
+        echo '<br>密碼: ' . htmlspecialchars('rootpassword');
         echo '</div>';
         
         // 關閉連接
@@ -315,8 +378,8 @@ CREATE TABLE IF NOT EXISTS comments (
 
 -- 插入示範資料
 INSERT INTO users (username, password, email) VALUES
-('admin', '$2y$10$XLqUQpVgufePBdXjLkVF8uX5nRfEVEBIhSjOLd5wG8Q3Qqe3RJzaC', 'admin@example.com'),
-('user1', '$2y$10$FgPUPQ.PJt1UcJC/TmZFz.c4ey01W.XI2FF7gZHzD.z9jjXZ7o11y', 'user1@example.com');
+('admin', 'demo', 'admin@example.com'),
+('user1', 'demo', 'user1@example.com');
 
 INSERT INTO posts (user_id, title, content) VALUES
 (1, '歡迎使用我們的網站', '這是第一篇文章，歡迎大家來到我們的網站！'),
@@ -327,9 +390,41 @@ INSERT INTO comments (post_id, user_id, comment) VALUES
 (2, 1, '這篇文章很有用！');
 EOF
 
+# 最後的一些檢查
+echo "執行最終檢查..."
+
+# 確保 PHP 模組都啟用
+a2enmod php
+
+# 確保 Apache 已啟用 PHP
+php_handlers=$(grep -r "php" /etc/apache2/mods-enabled/)
+if [ -z "$php_handlers" ]; then
+    echo "PHP 模組似乎未啟用，嘗試修復..."
+    for phpver in /etc/php/*/apache2/php.ini; do
+        phpversion=$(echo $phpver | grep -oP '(?<=/etc/php/)[0-9]+\.[0-9]+(?=/apache2)')
+        if [ ! -z "$phpversion" ]; then
+            echo "啟用 PHP $phpversion 模組..."
+            a2enmod php$phpversion
+        fi
+    done
+fi
+
+# 最後一步：重啟 Apache，確保所有設置都生效
+systemctl restart apache2
+sleep 3
+
+# 檢查 Apache 是否成功啟動
+if systemctl is-active apache2 > /dev/null; then
+    echo "Apache 伺服器已成功重啟"
+else
+    echo "警告：Apache 伺服器未成功啟動，請檢查配置"
+    systemctl status apache2
+fi
+
 echo "==== 資料庫環境安裝完成 ===="
 echo "您可以通過以下網址訪問 phpMyAdmin：http://YOUR_SERVER_IP/phpmyadmin/"
 echo "資料庫連接測試頁面：http://YOUR_SERVER_IP/db-test.php"
+echo "PHP 資訊頁面：http://YOUR_SERVER_IP/phpinfo.php"
 echo "資料庫配置信息："
 echo "數據庫名稱：$MYSQL_APP_DB"
 echo "應用程序用戶：$MYSQL_APP_USER"
