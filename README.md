@@ -1,5 +1,3 @@
-# 版本 : V1.2
-
 # Ubuntu Apache 自動化部署腳本
 
 此專案提供一組腳本，用於在 Ubuntu 系統上自動化部署和配置 LAMP (Linux, Apache, MariaDB, PHP) 環境。
@@ -20,29 +18,79 @@
 - 具有 sudo 權限的用戶
 - 網路連接以安裝必要的套件
 
-## 安裝步驟
+## 完整安裝步驟
 
-1. 克隆或下載此專案到您的 Ubuntu 系統
+### 方法一：從 GitHub 克隆（推薦）
+
+1. 安裝必要的工具：
+
+```bash
+sudo apt update
+sudo apt install -y git curl wget
+```
+
+2. 克隆此專案到您的 Ubuntu 系統：
 
 ```bash
 git clone https://github.com/yourusername/ubuntu-apache-setup.git
 cd ubuntu-apache-setup
 ```
 
-2. 設置腳本執行權限
+3. 設置腳本執行權限：
 
 ```bash
 chmod +x setup.sh
 chmod +x scripts/*.sh
 ```
 
-3. 執行主安裝腳本
+4. 執行主安裝腳本：
 
 ```bash
 sudo ./setup.sh
 ```
 
-4. 依照螢幕上的指示操作
+### 方法二：手動下載
+
+1. 更新系統並安裝必要的工具：
+
+```bash
+sudo apt update
+sudo apt install -y wget unzip
+```
+
+2. 下載專案壓縮檔：
+
+```bash
+wget https://github.com/yourusername/ubuntu-apache-setup/archive/main.zip -O ubuntu-apache-setup.zip
+```
+
+3. 解壓縮並進入目錄：
+
+```bash
+unzip ubuntu-apache-setup.zip
+cd ubuntu-apache-setup-main
+```
+
+4. 設置腳本執行權限：
+
+```bash
+chmod +x setup.sh
+chmod +x scripts/*.sh
+```
+
+5. 執行主安裝腳本：
+
+```bash
+sudo ./setup.sh
+```
+
+### 方法三：一鍵安裝指令
+
+如果您想要快速安裝，可以使用以下單行指令（適用於全新安裝的 Ubuntu）：
+
+```bash
+sudo apt update && sudo apt install -y git && git clone https://github.com/yourusername/ubuntu-apache-setup.git && cd ubuntu-apache-setup && chmod +x setup.sh scripts/*.sh && sudo ./setup.sh
+```
 
 ## 腳本結構
 
