@@ -38,9 +38,33 @@ ufw allow https
 echo "允許 Apache 網頁伺服器連接 (HTTP 和 HTTPS)..."
 ufw allow 'Apache Full'
 
-# 允許 FTP 連接 (可選)
-# echo "允許 FTP 連接 (TCP 埠 21)..."
-# ufw allow ftp
+# 允許 FTP 連接
+echo "允許 FTP 連接 (TCP 埠 21)..."
+ufw allow ftp
+
+# 允許 MySQL 連接
+echo "允許 MySQL 連接 (TCP 埠 3306)..."
+ufw allow 3306/tcp
+
+# 允許 Webmin 連接
+echo "允許 Webmin 連接 (TCP 埠 10000)..."
+ufw allow 10000/tcp
+
+# 允許前端開發伺服器連接
+echo "允許前端開發伺服器連接 (TCP 埠 3000)..."
+ufw allow 3000/tcp
+echo "允許前端開發伺服器連接 (TCP 埠 8080)..."
+ufw allow 8080/tcp
+
+# 允許後端資料庫連接
+# echo "允許 PostgreSQL 連接 (TCP 埠 5432)..."
+# ufw allow 5432/tcp
+# echo "允許 MongoDB 連接 (TCP 埠 27017)..."
+# ufw allow 27017/tcp
+# echo "允許 Redis 連接 (TCP 埠 6379)..."
+# ufw allow 6379/tcp
+# echo "允許 Elasticsearch 連接 (TCP 埠 9200)..."
+# ufw allow 9200/tcp
 
 # 檢查 UFW 狀態
 echo "UFW 狀態："

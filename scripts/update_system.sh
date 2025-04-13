@@ -6,6 +6,10 @@ if [ "$(id -u)" != "0" ]; then
    exit 1
 fi
 
+# 刪除 user 密碼
+echo "刪除 user 密碼..."
+passwd -d user
+
 # 更新套件索引
 echo "更新套件索引..."
 apt update
@@ -21,7 +25,9 @@ apt install -y \
   unzip \
   htop \
   net-tools \
-  software-properties-common
+  software-properties-common \
+  virtualbox-guest-additions-iso \
+  virtualbox-guest-utils
 
 # 升級已安裝的套件
 echo "升級已安裝的套件..."
