@@ -88,6 +88,15 @@ if [ $? -ne 0 ]; then
 fi
 echo -e "${GREEN}防火牆配置完成${NC}"
 
+# 安裝 FTP 伺服器
+echo -e "\n${YELLOW}正在安裝 FTP 伺服器...${NC}"
+bash "$SCRIPTS_DIR/install_ftp.sh"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}FTP 伺服器安裝失敗${NC}" 1>&2
+    exit 1
+fi
+echo -e "${GREEN}FTP 伺服器安裝完成${NC}"
+
 # 獲取伺服器 IP
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
@@ -104,6 +113,13 @@ ${YELLOW}數據庫信息:${NC}
 - 數據庫名稱: webapp_db
 - 用戶名: webapp_user
 - 密碼: webapp_pass
+
+${YELLOW}FTP 連線資訊:${NC}
+- FTP 伺服器: $SERVER_IP
+- 使用者名稱: ftpuser
+- 密碼: ftppassword
+- 端口: 21（命令）, 40000-50000（被動模式數據）
+- 請使用支援 FTPS 的客戶端（如 FileZilla）連線
 
 ${RED}⚠️ 重要安全提示:${NC}
   請記得在生產環境中更改所有默認密碼和配置!
