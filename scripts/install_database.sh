@@ -77,8 +77,10 @@ mysql -u root -p"$MYSQL_ROOT_PASSWORD" <<EOF
 CREATE DATABASE IF NOT EXISTS $MYSQL_APP_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- 創建用戶
 CREATE USER IF NOT EXISTS '$MYSQL_APP_USER'@'localhost' IDENTIFIED BY '$MYSQL_APP_PASSWORD';
+CREATE USER IF NOT EXISTS '$MYSQL_APP_USER'@'%' IDENTIFIED BY '$MYSQL_APP_PASSWORD';
 -- 授予權限
 GRANT ALL PRIVILEGES ON $MYSQL_APP_DB.* TO '$MYSQL_APP_USER'@'localhost';
+GRANT ALL PRIVILEGES ON $MYSQL_APP_DB.* TO '$MYSQL_APP_USER'@'%';
 -- 重新載入權限表
 FLUSH PRIVILEGES;
 EOF
@@ -102,46 +104,40 @@ if [ ! -f /etc/apache2/conf-enabled/phpmyadmin.conf ]; then
     ln -sf /etc/phpmyadmin/apache.conf /etc/apache2/conf-enabled/phpmyadmin.conf
 fi
 
-# 檢查 phpMyAdmin 安裝是否成功
-if [ -d /usr/share/phpmyadmin ]; then
-    echo "phpMyAdmin 安裝成功"
+# 配置 MySQL 以允許遠端連接
+echo "配置 MySQL 允許遠端連接..."
+# 找到 MySQL/MariaDB 配置文件
+if [ -f /etc/mysql/mariadb.conf.d/50-server.cnf ]; then
+    # MariaDB 配置文件
+    CONFIG_FILE="/etc/mysql/mariadb.conf.d/50-server.cnf"
+elif [ -f /etc/mysql/mysql.conf.d/mysqld.cnf ]; then
+    # MySQL 配置文件
+    CONFIG_FILE="/etc/mysql/mysql.conf.d/mysqld.cnf"
 else
-    echo "phpMyAdmin 安裝失敗，嘗試手動安裝..."
+    echo "找不到 MySQL/MariaDB 配置文件，嘗試搜索..."
+    CONFIG_FILE=$(find /etc/mysql -name "*.cnf" -exec grep -l "bind-address" {} \; | head -n 1)
     
-    # 嘗試手動安裝 phpMyAdmin
-    PHPMYADMIN_VERSION="5.2.1"
-    PHPMYADMIN_DIR="/usr/share/phpmyadmin"
-    
-    # 下載 phpMyAdmin
-    wget -O /tmp/phpmyadmin.tar.gz https://files.phpmyadmin.net/phpMyAdmin/${PHPMYADMIN_VERSION}/phpMyAdmin-${PHPMYADMIN_VERSION}-all-languages.tar.gz
-    
-    # 解壓到目標目錄
-    mkdir -p $PHPMYADMIN_DIR
-    tar xzf /tmp/phpmyadmin.tar.gz -C /tmp
-    cp -r /tmp/phpMyAdmin-${PHPMYADMIN_VERSION}-all-languages/* $PHPMYADMIN_DIR/
-    
-    # 創建配置檔
-    cp $PHPMYADMIN_DIR/config.sample.inc.php $PHPMYADMIN_DIR/config.inc.php
-    
-    # 生成隨機密鑰
-    BLOWFISH_SECRET=$(tr -dc 'a-zA-Z0-9~!@#$%^&*_()+}{?></";.,[]=-' < /dev/urandom | fold -w 32 | head -n 1)
-    sed -i "s/\$cfg\['blowfish_secret'\] = ''/\$cfg\['blowfish_secret'\] = '$BLOWFISH_SECRET'/g" $PHPMYADMIN_DIR/config.inc.php
-    
-    # 設置正確的權限
-    chown -R www-data:www-data $PHPMYADMIN_DIR
-    
-    # 創建 Apache 配置
-    echo "Alias /phpmyadmin $PHPMYADMIN_DIR" > /etc/apache2/conf-available/phpmyadmin.conf
-    echo "<Directory $PHPMYADMIN_DIR>" >> /etc/apache2/conf-available/phpmyadmin.conf
-    echo "    Options FollowSymLinks" >> /etc/apache2/conf-available/phpmyadmin.conf
-    echo "    DirectoryIndex index.php" >> /etc/apache2/conf-available/phpmyadmin.conf
-    echo "    AllowOverride All" >> /etc/apache2/conf-available/phpmyadmin.conf
-    echo "    Require all granted" >> /etc/apache2/conf-available/phpmyadmin.conf
-    echo "</Directory>" >> /etc/apache2/conf-available/phpmyadmin.conf
-    
-    # 啟用配置
-    a2enconf phpmyadmin
+    if [ -z "$CONFIG_FILE" ]; then
+        echo "警告：無法找到配置文件，可能無法配置遠端連接。"
+    fi
 fi
+
+if [ -n "$CONFIG_FILE" ]; then
+    echo "修改配置文件：$CONFIG_FILE"
+    # 確保備份配置文件
+    cp "$CONFIG_FILE" "${CONFIG_FILE}.backup"
+    
+    # 修改綁定地址
+    sed -i 's/^bind-address.*=.*127.0.0.1/bind-address = 0.0.0.0/' "$CONFIG_FILE"
+    # 如果沒有找到匹配項，則添加綁定地址
+    if ! grep -q "bind-address" "$CONFIG_FILE"; then
+        echo "bind-address = 0.0.0.0" >> "$CONFIG_FILE"
+    fi
+fi
+
+# 重啟 MySQL 服務以套用設定
+echo "重啟 MySQL 服務..."
+systemctl restart mariadb
 
 # 優化 PHP 配置
 echo "優化 PHP 配置..."
