@@ -42,13 +42,13 @@ ufw allow 'Apache Full'
 echo "允許 FTP 連接 (TCP 埠 21)..."
 ufw allow ftp
 
+# 允許 FTP 被動模式端口範圍
+echo "允許 FTP 被動模式端口範圍 (TCP 埠 40000-50000)..."
+ufw allow 40000:50000/tcp
+
 # 允許 MySQL 連接
 echo "允許 MySQL 連接 (TCP 埠 3306)..."
 ufw allow 3306/tcp
-
-# 允許 Webmin 連接
-echo "允許 Webmin 連接 (TCP 埠 10000)..."
-ufw allow 10000/tcp
 
 # 允許前端開發伺服器連接
 echo "允許前端開發伺服器連接 (TCP 埠 3000)..."
