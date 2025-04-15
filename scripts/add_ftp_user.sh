@@ -14,6 +14,13 @@ fi
 USERNAME="3311231016"
 USER_HOME=$(eval echo ~$USERNAME)
 WWW_DIR="$USER_HOME/www"
+# 設定用戶密碼 - 這裡設為預設密碼，您可以根據需要修改
+USER_PASSWORD="3311231016" # 預設使用學號作為密碼
+
+# 為用戶設定密碼
+echo "為用戶 $USERNAME 設定密碼..."
+echo "$USERNAME:$USER_PASSWORD" | chpasswd
+echo "密碼已設定"
 
 # 檢查 vsftpd 是否已安裝
 if ! command -v vsftpd &> /dev/null; then
@@ -68,6 +75,7 @@ echo "FTP 用戶設置完成！"
 echo "============================================================"
 echo "FTP 伺服器地址：$(hostname -I | awk '{print $1}')"
 echo "FTP 用戶名：$USERNAME"
+echo "FTP 密碼：$USER_PASSWORD"
 echo "FTP 目錄：$WWW_DIR"
 echo "FTP 端口：21（命令端口）, 40000-50000（數據端口）"
 echo "請使用支持 FTPS 的客戶端連接（如 FileZilla）"
