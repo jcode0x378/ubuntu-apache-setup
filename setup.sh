@@ -130,7 +130,7 @@ VHOST_CONF="/etc/apache2/sites-available/$USERNAME.conf"
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
 cat > "$VHOST_CONF" << EOF
-<VirtualHost *:80>
+<VirtualHost *:80 [::]:80>
     ServerAdmin webmaster@localhost
     DocumentRoot $WWW_DIR
     ServerName $SERVER_IP
@@ -152,6 +152,15 @@ a2ensite "$USERNAME.conf"
 
 # 重啟 Apache
 systemctl restart apache2
+
+# 為用戶添加 FTP 訪問權限
+echo -e "\n${YELLOW}正在為用戶 $USERNAME 設置 FTP 訪問權限...${NC}"
+bash "$SCRIPTS_DIR/add_ftp_user.sh"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}FTP 用戶設置失敗${NC}" 1>&2
+    exit 1
+fi
+echo -e "${GREEN}FTP 用戶設置完成${NC}"
 
 # 獲取伺服器 IP
 SERVER_IP=$(hostname -I | awk '{print $1}')
