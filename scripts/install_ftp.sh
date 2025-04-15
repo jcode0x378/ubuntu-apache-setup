@@ -54,9 +54,9 @@ pasv_max_port=50000
 xferlog_file=/var/log/vsftpd.log
 xferlog_std_format=YES
 
-# 目錄設置
-local_root=/var/www/html
+# 用戶和目錄設置
 user_sub_token=\$USER
+local_root=/home/\$USER/www
 userlist_enable=YES
 userlist_file=/etc/vsftpd.userlist
 userlist_deny=NO
@@ -81,6 +81,7 @@ if ! id "$FTP_USER" &>/dev/null; then
 fi
 
 # 添加用戶到允許列表
+touch /etc/vsftpd.userlist
 echo "$FTP_USER" > /etc/vsftpd.userlist
 
 # 設置目錄權限

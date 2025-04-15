@@ -28,6 +28,12 @@ if ! command -v vsftpd &> /dev/null; then
     exit 1
 fi
 
+# 確保 vsftpd.userlist 文件存在
+if [ ! -f "/etc/vsftpd.userlist" ]; then
+    echo "創建 FTP 用戶列表文件..."
+    touch /etc/vsftpd.userlist
+fi
+
 # 將用戶添加到 FTP 允許列表
 echo "添加用戶 $USERNAME 到 FTP 允許列表..."
 if grep -q "$USERNAME" /etc/vsftpd.userlist; then
@@ -37,15 +43,33 @@ else
     echo "用戶 $USERNAME 已添加到 FTP 允許列表"
 fi
 
-# 修改 vsftpd 配置以支持每個用戶的主目錄
+# 確保 vsftpd 配置正確設定
 echo "檢查 vsftpd 設定..."
+if ! grep -q "userlist_enable=YES" /etc/vsftpd.conf; then
+    echo "添加 userlist_enable 配置..."
+    echo "userlist_enable=YES" >> /etc/vsftpd.conf
+fi
+
+if ! grep -q "userlist_deny=NO" /etc/vsftpd.conf; then
+    echo "添加 userlist_deny 配置..."
+    echo "userlist_deny=NO" >> /etc/vsftpd.conf
+fi
+
+if ! grep -q "userlist_file=/etc/vsftpd.userlist" /etc/vsftpd.conf; then
+    echo "添加 userlist_file 配置..."
+    echo "userlist_file=/etc/vsftpd.userlist" >> /etc/vsftpd.conf
+fi
+
 if ! grep -q "user_sub_token" /etc/vsftpd.conf; then
     echo "添加自定義用戶目錄配置..."
     echo "user_sub_token=\$USER" >> /etc/vsftpd.conf
     echo "local_root=/home/\$USER/www" >> /etc/vsftpd.conf
 fi
 
-# 確保用戶目錄權限正確
+# 確保用戶目錄存在且權限正確
+echo "確保用戶目錄存在..."
+mkdir -p "$WWW_DIR"
+
 echo "設置用戶目錄權限..."
 chown -R $USERNAME:$USERNAME $WWW_DIR
 chmod -R 755 $WWW_DIR
