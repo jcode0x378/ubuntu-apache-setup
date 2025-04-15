@@ -12,6 +12,19 @@ if [ -f /etc/apache2/sites-available/000-default.conf ]; then
     cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.backup
 fi
 
+# 確保 ports.conf 正確配置
+echo "配置 Apache 監聽端口..."
+cat > /etc/apache2/ports.conf << EOF
+# 配置 Apache 明確監聽 IPv4 和 IPv6
+Listen 0.0.0.0:80
+Listen [::]:80
+
+<IfModule ssl_module>
+    Listen 0.0.0.0:443
+    Listen [::]:443
+</IfModule>
+EOF
+
 # 檢查配置文件是否存在
 if [ ! -f "$(pwd)/configs/apache/apache2.conf" ]; then
     echo "配置文件不存在，生成默認配置..."

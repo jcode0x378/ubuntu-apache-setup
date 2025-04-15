@@ -130,7 +130,23 @@ VHOST_CONF="/etc/apache2/sites-available/$USERNAME.conf"
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
 cat > "$VHOST_CONF" << EOF
-<VirtualHost *:80 [::]:80>
+<VirtualHost 0.0.0.0:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot $WWW_DIR
+    ServerName $SERVER_IP
+    ServerAlias www.$USERNAME.local
+    
+    <Directory $WWW_DIR>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    ErrorLog \${APACHE_LOG_DIR}/$USERNAME-error.log
+    CustomLog \${APACHE_LOG_DIR}/$USERNAME-access.log combined
+</VirtualHost>
+
+<VirtualHost [::]:80>
     ServerAdmin webmaster@localhost
     DocumentRoot $WWW_DIR
     ServerName $SERVER_IP
