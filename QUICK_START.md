@@ -14,14 +14,28 @@ sudo apt update && sudo apt install -y git && git clone https://github.com/youru
 
 成功安裝後，您可以通過以下方式訪問：
 
-- **主頁**: http://[伺服器IP]/
-- **管理介面**: http://[伺服器IP]/admin.php
-- **phpMyAdmin**: http://[伺服器IP]/phpmyadmin
+- **主頁**: http://[伺服器 IP]/
+- **phpMyAdmin**: http://[伺服器 IP]/phpmyadmin
+- **3311231016 用戶網站**: http://[伺服器 IP]/
 
 ## 管理員登入
 
 - **用戶名**: admin
 - **密碼**: demo
+
+## 自動創建的用戶資訊
+
+安裝腳本會自動創建以下用戶：
+
+- **系統用戶**: 3311231016
+
+  - **網站目錄**: /home/3311231016/www
+  - **訪問方式**: 可通過 FTP 上傳文件到此目錄
+
+- **FTP 用戶**: ftpuser
+  - **密碼**: ftppassword
+  - **FTP 端口**: 21（命令）, 40000-50000（被動模式數據）
+  - **使用說明**: 請使用支援 FTPS 的客戶端（如 FileZilla）連線
 
 ## 常用指令
 
@@ -67,4 +81,4 @@ sudo ./scripts/fix_apache.sh
 1. 立即更改所有預設密碼
 2. 啟用 HTTPS
 3. 調整檔案權限
-4. 定期更新系統 
+4. 定期更新系統
