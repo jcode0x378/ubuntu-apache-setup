@@ -166,6 +166,46 @@ EOF
 # 啟用站點
 a2ensite "$USERNAME.conf"
 
+# 創建測試頁面
+echo -e "${YELLOW}創建用戶測試頁面...${NC}"
+cat > "$WWW_DIR/index.html" << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>$USERNAME 的網站</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .success {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-left: 5px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>$USERNAME 的個人網站</h1>
+    <div class="success">
+        <p>恭喜您！您的個人網站已成功設定。</p>
+        <p>這是一個自動生成的測試頁面，您可以根據需要自行修改。</p>
+        <p>伺服器 IP: $SERVER_IP</p>
+    </div>
+</body>
+</html>
+EOF
+
+# 確保權限正確
+chown -R "$USERNAME":"$USERNAME" "$WWW_DIR"
+find "$WWW_DIR" -type d -exec chmod 755 {} \;
+find "$WWW_DIR" -type f -exec chmod 644 {} \;
+
 # 重啟 Apache
 systemctl restart apache2
 

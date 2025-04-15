@@ -25,64 +25,112 @@ Listen [::]:80
 </IfModule>
 EOF
 
-# 檢查配置文件是否存在
-if [ ! -f "$(pwd)/configs/apache/apache2.conf" ]; then
-    echo "配置文件不存在，生成默認配置..."
-    # 使用現有配置作為基礎
-    cp /etc/apache2/apache2.conf "$(pwd)/configs/apache/apache2.conf"
-    # 添加一些安全優化設置
-    echo "# 安全優化設置" >> "$(pwd)/configs/apache/apache2.conf"
-    echo "ServerTokens Prod" >> "$(pwd)/configs/apache/apache2.conf"
-    echo "ServerSignature Off" >> "$(pwd)/configs/apache/apache2.conf"
-    echo "TraceEnable Off" >> "$(pwd)/configs/apache/apache2.conf"
-fi
+# 修改 Apache 主配置文件
+echo "修改 Apache 主配置文件..."
+cat >> /etc/apache2/apache2.conf << EOF
 
-if [ ! -f "$(pwd)/configs/apache/sites-available/000-default.conf" ]; then
-    echo "站點配置文件不存在，生成默認配置..."
-    # 使用現有配置作為基礎
-    cp /etc/apache2/sites-available/000-default.conf "$(pwd)/configs/apache/sites-available/000-default.conf"
-    # 修改站點配置
-    sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html|g' "$(pwd)/configs/apache/sites-available/000-default.conf"
-fi
+# 允許訪問 /home 目錄中的網站
+<Directory /home/*/www>
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+
+# 安全優化設置
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+EOF
+
+# 配置默認站點
+echo "配置默認站點..."
+cat > /etc/apache2/sites-available/000-default.conf << EOF
+<VirtualHost 0.0.0.0:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html
+    
+    <Directory /var/www/html>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+<VirtualHost [::]:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html
+    
+    <Directory /var/www/html>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+EOF
 
 # 複製網站文件到 Apache 目錄
 echo "複製網站文件到 Apache 目錄..."
 
-# 確保 admin.php 和其他網頁文件已被複製
-if [ -f "$(pwd)/web/admin.php" ]; then
-    echo "複製 admin.php 到 Apache 目錄..."
-    cp "$(pwd)/web/admin.php" /var/www/html/
-fi
+# 創建測試頁面
+echo "創建測試頁面..."
+cat > /var/www/html/index.html << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LAMP 自動部署成功</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .success {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-left: 5px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <h1>伺服器設定成功！</h1>
+    <div class="success">
+        <p>恭喜您！您的 LAMP (Linux, Apache, MySQL, PHP) 伺服器已成功設定。</p>
+        <p>這是一個自動生成的測試頁面，表示 Apache 伺服器已正確設定並運行。</p>
+        <p>伺服器時間: <?php echo date('Y-m-d H:i:s'); ?></p>
+        <p>伺服器 IP: <?php echo $_SERVER['SERVER_ADDR']; ?></p>
+    </div>
+</body>
+</html>
+EOF
 
-if [ -f "$(pwd)/web/index.html" ]; then
-    echo "複製 index.html 到 Apache 目錄..."
-    cp "$(pwd)/web/index.html" /var/www/html/
-fi
+# 創建 phpinfo 頁面用於測試
+echo "創建 PHP 資訊頁面..."
+cat > /var/www/html/info.php << EOF
+<?php
+phpinfo();
+EOF
 
-# 複製所有網站文件
-cp -r "$(pwd)/web/"* /var/www/html/
+# 確保 Apache 目錄權限正確
+echo "設置目錄權限..."
+find /var/www/html -type d -exec chmod 755 {} \;
+find /var/www/html -type f -exec chmod 644 {} \;
+chown -R www-data:www-data /var/www/html
 
-# 設置適當的權限
-echo "設置文件權限..."
-chown -R www-data:www-data /var/www/html/
-chmod -R 755 /var/www/html/
-
-# 啟用必要的模組（使用 a2enmod 而不是手動加載）
+# 啟用必要的模組
 echo "啟用必要的 Apache 模組..."
 a2enmod rewrite
 a2enmod ssl
 a2enmod headers
-
-# 應用配置文件（僅包含必要的設定）
-echo "應用項目配置文件..."
-# 僅修改部分安全配置，不完全覆蓋配置文件
-echo "# 安全優化設置" >> /etc/apache2/apache2.conf
-echo "ServerTokens Prod" >> /etc/apache2/apache2.conf
-echo "ServerSignature Off" >> /etc/apache2/apache2.conf
-echo "TraceEnable Off" >> /etc/apache2/apache2.conf
-
-# 修改默認站點配置
-cp "$(pwd)/configs/apache/sites-available/000-default.conf" /etc/apache2/sites-available/000-default.conf
 
 # 重啟 Apache 以應用配置
 echo "重啟 Apache 服務以應用配置..."
@@ -91,34 +139,34 @@ systemctl restart apache2
 # 檢查重啟是否成功
 if ! systemctl is-active apache2 >/dev/null; then
     echo "警告：Apache 服務未正常啟動，嘗試修復..."
-    # 還原配置並重啟
-    if [ -f /etc/apache2/apache2.conf.backup ]; then
-        cp /etc/apache2/apache2.conf.backup /etc/apache2/apache2.conf
-    fi
+    # 查看錯誤日誌
+    tail -n 20 /var/log/apache2/error.log
+    
+    # 執行 Apache 配置測試
+    apache2ctl -t
+    
+    # 嘗試再次重啟
     systemctl restart apache2
     
     if ! systemctl is-active apache2 >/dev/null; then
         echo "Apache 重啟失敗，請手動檢查配置"
         exit 1
     else
-        echo "成功還原並重啟 Apache 服務"
+        echo "成功重啟 Apache 服務"
     fi
 fi
 
-# 確保開機自動啟動
+# 確保 Apache 開機自動啟動
 echo "設置 Apache 開機自動啟動..."
 systemctl enable apache2
 
-# 檢查自動啟動是否成功設置
-if systemctl is-enabled apache2 >/dev/null; then
-    echo "Apache2 已設置為開機自動啟動"
-else
-    echo "警告：無法通過 systemctl 設置開機自動啟動，嘗試其他方法..."
-    update-rc.d apache2 defaults
-fi
+# 驗證監聽狀態
+echo "驗證 Apache 監聽狀態..."
+netstat -tuln | grep 80
 
-# 檢查配置是否正確
-apache2ctl configtest
-
+# 輸出完成訊息
 echo "==== Apache 配置完成 ===="
+echo "可以通過以下地址訪問網站："
+hostname -I | awk '{print "http://"$1}'
+
 exit 0 
